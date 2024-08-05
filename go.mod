@@ -1,8 +1,10 @@
 module github.com/goplus/mod
 
-go 1.16
+go 1.18
 
 require (
-	github.com/qiniu/x v1.13.8
-	golang.org/x/mod v0.15.0
+	github.com/qiniu/x v1.13.10
+	golang.org/x/mod v0.19.0
 )
+
+retract v0.13.11

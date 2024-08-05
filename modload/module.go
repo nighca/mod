@@ -226,9 +226,33 @@ func LoadFromEx(gomod, gopmod string, readFile func(string) ([]byte, error)) (p 
 		opt = newGopMod(gopmod, defaultGopVer)
 	}
 	importClassfileFromGoMod(opt, f)
+	if cl := getGoCompiler(f); cl != nil {
+		opt.Compiler = cl
+	}
 	return Module{f, opt}, nil
 }
 
+// AddCompiler adds a custom Go compiler to this module.
+func (p Module) AddCompiler(compiler, ver string) {
+	f := p.File
+	if f.Go == nil {
+		f.AddGoStmt(defaultGoVer)
+	}
+	addCompiler(p.Opt, f.Go, compiler, ver)
+	p.Opt.Compiler = &modfile.Compiler{Name: compiler, Version: ver}
+}
+
+func addCompiler(opt *modfile.File, r *gomodfile.Go, compiler, ver string) {
+	if line := r.Syntax; line != nil {
+		line.Suffix = []gomodfile.Comment{{
+			Token:  "// " + compiler + " " + ver,
+			Suffix: true,
+		}}
+		opt.Compiler = &modfile.Compiler{Name: compiler, Version: ver}
+	}
+}
+
+// AddRequire adds a require package to this module.
 func (p Module) AddRequire(path, vers string, hasProj bool) error {
 	f := p.File
 	f.AddRequire(path, vers)
@@ -273,6 +297,32 @@ func isClass(r *gomodfile.Require) bool {
 		}
 	}
 	return false
+}
+
+/*
+go 1.18 // llgo 0.9
+go 1.18 // tinygo 0.32
+*/
+func getGoCompiler(f *gomodfile.File) *modfile.Compiler {
+	if gostmt := f.Go; gostmt != nil {
+		if line := gostmt.Syntax; line != nil {
+			for _, c := range line.Suffix {
+				text := strings.TrimLeft(c.Token[2:], " \t")
+				if strings.HasPrefix(text, "llgo ") {
+					return &modfile.Compiler{
+						Name:    "llgo",
+						Version: strings.TrimSpace(text[5:]),
+					}
+				} else if strings.HasPrefix(text, "tinygo ") {
+					return &modfile.Compiler{
+						Name:    "tinygo",
+						Version: strings.TrimSpace(text[7:]),
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // -----------------------------------------------------------------------------

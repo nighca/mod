@@ -29,6 +29,11 @@ func TestGopClass(t *testing.T) {
 	modtest.GopClass(t)
 }
 
+func TestGoCompiler(t *testing.T) {
+	modtest.LLGoCompiler(t)
+	modtest.TinyGoCompiler(t)
+}
+
 func TestImport(t *testing.T) {
 	modtest.Import(t)
 }
